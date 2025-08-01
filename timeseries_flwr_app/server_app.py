@@ -19,9 +19,9 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     # Return weighted average accuracy
     return {"federated_evaluate_mae": sum(maes) / total_examples}
 
-# Centralized evaluation function
+# Global/Centralized model evaluation function
 def gen_evaluate_fn(x_test, y_test, n_input, num_features, n_output):
-    """Return a callback that evaluates the global model."""
+    """Return a callback that evaluates the global model.""" 
     def evaluate(server_round, parameters, _): # '_' for unused config
         """Evaluate global model using provided centralised testset."""
         # Instantiate model

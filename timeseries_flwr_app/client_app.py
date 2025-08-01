@@ -98,7 +98,6 @@ def client_fn(context: Context):
                       n_output, epochs, batch_size, verbose).to_client()
 
 
-
 # Flower ClientApp
 app = ClientApp(
     client_fn=client_fn,
