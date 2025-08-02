@@ -1,9 +1,9 @@
 """timeseries-flwr-app: A Flower / TensorFlow app."""
 import os
 from typing import List, Tuple
-from flwr.common import Context, ndarrays_to_parameters, Metrics
+from flwr.common import Context, ndarrays_to_parameters, parameters_to_ndarrays, Metrics
 from flwr.server import ServerApp, ServerAppComponents, ServerConfig
-from flwr.server.strategy import FedAvg
+from timeseries_flwr_app.customfedadam_strategy import CustomFedAdam
 from timeseries_flwr_app.task import build_model, get_weights, get_centralized_test_data
 
 
@@ -12,7 +12,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-    """Aggregates metrics from an evaluate round."""
+    """Aggregates distributed/federated metrics from an evaluate round."""
     # Loop trough all metrics received compute maes x examples
     maes = [num_examples * m["mae"] for num_examples, m in metrics]
     total_examples = sum(num_examples for num_examples, _ in metrics)
@@ -26,11 +26,19 @@ def gen_evaluate_fn(x_test, y_test, n_input, num_features, n_output):
         """Evaluate global model using provided centralised testset."""
         # Instantiate model
         model = build_model(n_input, num_features, n_output)
+        # Convert flwr Parameters to list of np.ndarray
+        weights = parameters_to_ndarrays(parameters)
         # Apply global_model parameters
-        model.set_weights(parameters)
+        model.set_weights(weights)
+
         loss, mae = model.evaluate(x_test, y_test, verbose=0)
+        y_pred = model.predict(x_test, verbose=0)
         print(f"[Centralized Evaluation] Round {server_round}:")
-        return loss, {"centralized_evaluate_mae": mae}
+        return loss, {
+                    "centralized_evaluate_mae": mae,
+                    "y_true": y_test.flatten(),
+                    "y_pred": y_pred.flatten()
+                      }
     return evaluate
 
 def handle_fit_metrics(metrics: List[Tuple[int, Metrics]]) -> Metrics:
@@ -57,6 +65,10 @@ def on_fit_config(server_round: int) -> Metrics:
         lr = 0.008
     return {"lr": lr}
 
+def on_evaluate_config(server_round: int):
+    """server to explicitly pass the round number to client"""
+    return {"server_round": server_round}
+
 
 def server_fn(context: Context):
     """Construct components that set the ServerApp behaviour."""
@@ -71,9 +83,6 @@ def server_fn(context: Context):
     stride = context.run_config["stride"]
     one_year_hours = context.run_config["one_year_hours"]
     # Get initial parameters to initialize global model
-    #parameters = ndarrays_to_parameters(build_model(n_input, num_features, n_output).get_weights())
-
-    # Initialize model parameters
     ndarrays = get_weights(build_model(n_input, num_features, n_output, learning_rate))
     parameters = ndarrays_to_parameters(ndarrays)
 
@@ -84,18 +93,19 @@ def server_fn(context: Context):
                         one_year_hours=one_year_hours,
                         )
     # Define strategy
-    strategy = FedAvg(
+    strategy = CustomFedAdam(
         fraction_fit = 1.0,
         fraction_evaluate = 1.0,
         min_available_clients = 2,
-        #min_evaluate_clients = 2,
-        #eta = 0.001,      # Learning rate
+        min_evaluate_clients = 2,
+        eta = learning_rate,      # Learning rate
         #beta_1 = 0.9,
         #beta_2 = 0.99,
         #tau=1e-9,
         evaluate_metrics_aggregation_fn=weighted_average,
         on_fit_config_fn=on_fit_config,
         fit_metrics_aggregation_fn=handle_fit_metrics,
+        on_evaluate_config_fn=on_evaluate_config,
         evaluate_fn=gen_evaluate_fn(
                         x_test,
                         y_test,

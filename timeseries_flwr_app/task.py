@@ -88,6 +88,7 @@ def get_client_data(partition_id, n_input, n_output, stride, one_year_hours):
         "test": (x_test, y_test),
         "full_scaler": full_scaler,
         "target_scaler": target_scaler,
+        "cid": client_name,
     }
 
 def get_centralized_test_data(n_input, n_output, stride, one_year_hours):
