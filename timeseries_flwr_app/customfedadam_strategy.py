@@ -36,7 +36,7 @@ class CustomFedAdam(FedAdam):
             writer.writerows(self.global_log)
 
     def store_results_and_log(self, server_round: int, tag: str, results_dict: dict):
-        """A helper method that stores results and logs them to CSV."""
+        """federated_evaluate - A helper method that stores results and logs them to CSV."""
         # Store for internal tracking (e.g., Flower History)
         #self._store_results(tag=tag, results_dict={"round": server_round, **results_dict})
 

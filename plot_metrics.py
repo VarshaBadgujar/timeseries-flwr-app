@@ -6,9 +6,9 @@ from pathlib import Path
 log_dir = Path.cwd() / "log_metrics"
 global_path = log_dir / "global_eval_log.csv"
 client_paths = {
-    "Client 1": log_dir / "client_eval_log_1.csv",
-    "Client 2": log_dir / "client_eval_log_2.csv",
-    "Client 3": log_dir / "client_eval_log_3.csv",
+    "Client 1": log_dir / "client_eval_log_Client_1.csv",
+    "Client 2": log_dir / "client_eval_log_Client_2.csv",
+    "Client 3": log_dir / "client_eval_log_Client_3.csv",
 }
 
 # Load and convert global MAE

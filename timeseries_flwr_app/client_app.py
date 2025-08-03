@@ -20,7 +20,8 @@ def log_client_metrics(client_id, round_num, loss, mae):
     # Full path to log file
     filename = log_dir / f"client_eval_log_{client_id}.csv"
 
-    file_exists = Path(filename).exists()
+    # Check whether file exists and is non-empty
+    file_exists = Path(filename).exists() and filename.stat().st_size > 0
     with open(filename, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if not file_exists:
