@@ -1,6 +1,7 @@
+""" Plot metrics - flwr_tf_project"""
+from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
-from pathlib import Path
 
 # Paths
 log_dir = Path.cwd() / "log_metrics"
